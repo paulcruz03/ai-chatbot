@@ -1,0 +1,165 @@
+<html>
+  <head>
+    <script src="https://unpkg.com/showdown/dist/showdown.min.js"></script>
+    <style>
+      body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      padding: 0;
+      background-color: #f4f4f9;
+      }
+
+      h3 {
+      color: #333;
+      }
+
+      button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      margin: 5px;
+      cursor: pointer;
+      border-radius: 5px;
+      }
+
+      button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+      }
+
+      input[type="text"] {
+      padding: 10px;
+      margin: 5px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      width: 300px;
+      }
+
+      input[type="text"]:disabled {
+        cursor: not-allowed;
+        background-color: #cccccc;
+      }
+
+      pre {
+      background-color: #e9ecef;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      margin-top: 10px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      max-height: 300px;
+      overflow-y: auto;
+      }
+
+      .messages-container {
+        padding: 15px;
+      }
+
+      .message-box {
+        padding: 10px;
+        margin-bottom: 5px;
+        border-radius: 10px;
+      }
+
+      .message-box.left {
+        background-color: #dbcccc;
+        color: black;
+        font-size: 13px;
+        display: flex;
+        justify-content: end;
+        width: 50%;
+        justify-self: right;
+      }
+
+      .message-box.right {
+        background-color: #333;
+        color: #fff;
+        font-size: 13px;
+        display: flex;
+        justify-content: start;
+        width: 50%;
+        justify-self: start;
+      }
+
+      .message-box.right div {
+        display: block;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h3>WebSocket Go</h3>
+    <button id="start-button" onclick="start()">start</button>
+    <input disabled type="text" id="input" placeholder="Enter message">
+    <button id="send-button" disabled onclick='send(document.getElementById("input").value);'>send</button>
+    <div class="messages-container">
+    </div>
+
+    
+    <script>
+      var c = null;
+      document.getElementById("input").addEventListener("keypress", function(event) {
+        // If the user presses the "Enter" key on the keyboard
+        if (event.key === "Enter") {
+          // Cancel the default action, if needed
+          event.preventDefault();
+          send(document.getElementById("input").value);
+        }
+      });
+
+      function start() {
+        fetch("http://localhost:8080/client-id")
+          .then(response => response.json())
+          .then(data => {
+            console.log(data);
+            clientId = data.id;
+            c = new WebSocket(`ws://localhost:8080/ws/${clientId}`);
+            initChat()
+            document.getElementById("start-button").disabled = true;
+            document.getElementById("input").disabled = false;
+            document.getElementById("send-button").disabled = false;
+          })
+          .catch(error => {
+            console.error('Error:', error);
+          });
+      }
+
+      function appendToChatUI(msg, side) {
+        const container = document.getElementsByClassName("messages-container")[0];
+        const newMessage = document.createElement("div");
+        newMessage.className = `message-box ${side}`;
+        newMessage.innerHTML = `<div>${msg}</div>`;
+        container.appendChild(newMessage);
+      }
+
+      function initChat() {
+        c.onopen = function(event) {
+          console.log("WebSocket is open now.");
+        };
+
+        c.onmessage = function(msg){
+          console.log(msg);
+          var converter = new showdown.Converter();
+          appendToChatUI(converter.makeHtml(msg.data), "right");
+        }
+
+        c.onclose = function(event) {
+          console.log("WebSocket is closed now.");
+        };
+
+        c.onerror = function(error) {
+          console.log("WebSocket error: ", error);
+        };
+      }
+
+      function send(message) {
+        c.send(message);
+        appendToChatUI(message, "left");
+        document.getElementById("input").value = "";
+      }
+    </script>
+
+  </body>
+</html>
