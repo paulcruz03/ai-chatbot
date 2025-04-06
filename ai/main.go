@@ -6,31 +6,38 @@ import (
 
 	"go-chatbot/utils"
 
-	"google.golang.org/genai"
+	"github.com/google/generative-ai-go/genai"
+	"google.golang.org/api/option"
 )
 
-func Main() *genai.Client {
+func Main() *genai.GenerativeModel {
 	aiKey := utils.GoDotEnvVariable("GEMINI_API_KEY")
 	ctx := context.Background()
-	client, err := genai.NewClient(ctx, &genai.ClientConfig{APIKey: aiKey})
+	client, err := genai.NewClient(ctx, option.WithAPIKey(aiKey))
 
 	if err != nil {
 		log.Fatal(err)
 	}
+	model := client.GenerativeModel("gemini-2.0-flash-exp")
 
-	CreateLogger("Init Ai") // helper function for printing content parts
-	return client
+	CreateLogger("Init Ai")
+	return model
 }
 
-func AiPrompt(client *genai.Client, prompt string) string {
+func AiPrompt(model *genai.GenerativeModel, chatHistory []*genai.Content, prompt string) string {
 	ctx := context.Background()
-	parts := []*genai.Part{
-		{Text: prompt},
-	}
-	resp, err := client.Models.GenerateContent(ctx, "gemini-2.0-flash-exp", []*genai.Content{{Parts: parts}}, nil)
+	cs := model.StartChat()
+
+	CreateLogger("Prompt: " + prompt)
+	cs.History = chatHistory
+	resp, err := cs.SendMessage(ctx, genai.Text(prompt))
 	if err != nil {
 		log.Fatal(err)
 	}
-	CreateLogger("Ai Prompt: " + prompt) // helper function for printing content parts
-	return resp.Text()
+	if len(resp.Candidates) > 0 && len(resp.Candidates[0].Content.Parts) > 0 {
+		if textPart, ok := resp.Candidates[0].Content.Parts[0].(genai.Text); ok {
+			return string(textPart)
+		}
+	}
+	return ""
 }

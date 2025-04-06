@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/generative-ai-go/genai"
 	"github.com/gorilla/websocket"
 )
 
@@ -16,18 +17,37 @@ var wsupgrader = websocket.Upgrader{
 		return true
 	},
 }
-var AiClient = ai.Main()
+var AiModel = ai.Main()
+var chatSessions map[string][]*genai.Content
 
-func chat(ws *websocket.Conn) {
+func chat(clientId string, ws *websocket.Conn) {
 	defer ws.Close()
+
+	if chatSessions == nil {
+		chatSessions = make(map[string][]*genai.Content)
+	}
+
 	for {
 		t, msg, err := ws.ReadMessage()
 		if err != nil {
 			break
 		}
 
-		resp := ai.AiPrompt(AiClient, string(msg))
+		resp := ai.AiPrompt(AiModel, chatSessions[clientId], string(msg))
 		ws.WriteMessage(t, []byte(resp))
+
+		// create new chat history
+		chatSessions[clientId] = append(chatSessions[clientId], &genai.Content{
+			Parts: []genai.Part{
+				genai.Text(string(msg)),
+			},
+			Role: "user",
+		}, &genai.Content{
+			Parts: []genai.Part{
+				genai.Text(resp),
+			},
+			Role: "model",
+		})
 	}
 }
 
@@ -43,5 +63,5 @@ func WsHandler(ctx *gin.Context) {
 		return
 	}
 
-	chat(ws)
+	chat(ctx.Param("clientId"), ws)
 }
