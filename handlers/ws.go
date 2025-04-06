@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"go-chatbot/ai"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/generative-ai-go/genai"
 	"github.com/gorilla/websocket"
 )
 
@@ -17,23 +17,44 @@ var wsupgrader = websocket.Upgrader{
 		return true
 	},
 }
+var AiModel = ai.Main()
+var chatSessions map[string][]*genai.Content
 
-var AiClient = ai.Main()
-
-func chat(ws *websocket.Conn) {
+func chat(clientId string, ws *websocket.Conn) {
 	defer ws.Close()
+
+	// to create a new chat session
+	// like { clientId: chatHistory[] }
+	if chatSessions == nil {
+		chatSessions = make(map[string][]*genai.Content)
+	}
+
 	for {
 		t, msg, err := ws.ReadMessage()
 		if err != nil {
 			break
 		}
-		resp := ai.AiPrompt(AiClient, string(msg))
-		time.Sleep(5000 * time.Millisecond)
+
+		resp := ai.AiPrompt(AiModel, chatSessions[clientId], string(msg))
 		ws.WriteMessage(t, []byte(resp))
+
+		// create new chat history
+		chatSessions[clientId] = append(chatSessions[clientId], &genai.Content{
+			Parts: []genai.Part{
+				genai.Text(string(msg)),
+			},
+			Role: "user",
+		}, &genai.Content{
+			Parts: []genai.Part{
+				genai.Text(resp),
+			},
+			Role: "model",
+		})
 	}
 }
 
 func WsHandler(ctx *gin.Context) {
+	// security check that only allowed clientId can access the websocket
 	if !CheckAllowedClientId(ctx.Param("clientId")) {
 		return
 	}
@@ -44,5 +65,5 @@ func WsHandler(ctx *gin.Context) {
 		return
 	}
 
-	chat(ws)
+	chat(ctx.Param("clientId"), ws)
 }

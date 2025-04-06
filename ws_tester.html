@@ -55,6 +55,7 @@
 
       .messages-container {
         padding: 15px;
+        margin-top: 115px;
       }
 
       .message-box {
@@ -81,19 +82,55 @@
         justify-content: start;
         width: 50%;
         justify-self: start;
+        overflow: auto;
       }
 
       .message-box.right div {
         display: block;
       }
+
+      .message-box-input {
+        position: fixed;
+        top: 0;
+        background-color: #f4f4f9;
+        min-height: 110px;
+        width: 100%;
+        left: 0px;
+        padding-left: 15px;
+      }
+      #start {
+        background: white;
+        z-index: 1;
+        position: fixed;
+        width: 100vw;
+        height: 100vh;
+        top: 0;
+        left: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2;
+      }
+      #start.hide {
+        display: none;
+      }
+      #start #start-button {
+        width: 120px;
+        height: 60px;
+        text-transform: uppercase;
+      }
     </style>
   </head>
 
   <body>
-    <h3>WebSocket Go</h3>
-    <button id="start-button" onclick="start()">start</button>
-    <input disabled type="text" id="input" placeholder="Enter message">
-    <button id="send-button" disabled onclick='send(document.getElementById("input").value);'>send</button>
+    <div id="start">
+      <button id="start-button" onclick="start()">Start</button>
+    </div>
+    <div class="message-box-input">
+      <h3>WebSocket Go</h3>
+      <input disabled type="text" id="input" placeholder="Enter message">
+      <button id="send-button" disabled onclick='send(document.getElementById("input").value);'>send</button>
+    </div>
     <div class="messages-container">
     </div>
 
@@ -117,6 +154,7 @@
             clientId = data.id;
             c = new WebSocket(`ws://localhost:8080/ws/${clientId}`);
             initChat()
+            document.getElementById("start").classList.add("hide");
             document.getElementById("start-button").disabled = true;
             document.getElementById("input").disabled = false;
             document.getElementById("send-button").disabled = false;

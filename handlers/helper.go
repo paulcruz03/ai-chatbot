@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var allowedClientIds = []string{"client-id-12345cd "}
+var allowedClientIds = []string{""}
 
 func HealthCheck(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
