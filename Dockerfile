@@ -7,7 +7,7 @@ RUN CGO_ENABLED=0 go build -o ./main
 
 # ----------
 
-FROM scratch
+FROM debian:bullseye-slim
 
 WORKDIR /app
 
@@ -18,6 +18,10 @@ COPY --from=builder /build/.env ./.env
 # Copy TLS cert and key
 COPY --from=builder /build/key.pem ./key.pem
 COPY --from=builder /build/cert.pem ./cert.pem
+
+# Install ca-certificates
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN update-ca-certificates
 
 # Expose HTTPS port
 EXPOSE 443
