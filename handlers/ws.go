@@ -23,6 +23,8 @@ var chatSessions map[string][]*genai.Content
 func chat(clientId string, ws *websocket.Conn) {
 	defer ws.Close()
 
+	// to create a new chat session
+	// like { clientId: chatHistory[] }
 	if chatSessions == nil {
 		chatSessions = make(map[string][]*genai.Content)
 	}

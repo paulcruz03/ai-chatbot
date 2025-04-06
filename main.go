@@ -31,5 +31,10 @@ func main() {
 	router.GET("/client-id", handlers.GenerateClientId)
 	router.GET("/ws/:clientId", handlers.WsHandler)
 
-	router.Run(":8080")
+	// router.Run(":8080")
+	// Start HTTPS server
+	err := router.RunTLS(":443", "./cert.pem", "./key.pem")
+	if err != nil {
+		panic("Failed to start HTTPS server: " + err.Error())
+	}
 }
