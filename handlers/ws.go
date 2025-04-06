@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"go-chatbot/ai"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -17,7 +16,6 @@ var wsupgrader = websocket.Upgrader{
 		return true
 	},
 }
-
 var AiClient = ai.Main()
 
 func chat(ws *websocket.Conn) {
@@ -27,13 +25,14 @@ func chat(ws *websocket.Conn) {
 		if err != nil {
 			break
 		}
+
 		resp := ai.AiPrompt(AiClient, string(msg))
-		time.Sleep(5000 * time.Millisecond)
 		ws.WriteMessage(t, []byte(resp))
 	}
 }
 
 func WsHandler(ctx *gin.Context) {
+	// security check that only allowed clientId can access the websocket
 	if !CheckAllowedClientId(ctx.Param("clientId")) {
 		return
 	}
