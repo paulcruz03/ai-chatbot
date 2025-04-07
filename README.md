@@ -1,6 +1,6 @@
 # Chatbot AI project
 
-Sample Project to upskill AI Prompt development. For this project, I used Go lang for fast development compared to NodeJS. For Ai, I used Google's `gemini-2.0-flash-exp` model.
+Sample Project to upskill AI Prompt development. For this project, I used Go lang for fast development compared to NodeJS. For Ai, I used Google's `gemini-2.0-flash-exp` model. 
 
 Sharing this for those who want to upskill also. Setup:
 1. Install Go lang. Checkout their [installation guide](https://go.dev/dl/)
