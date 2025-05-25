@@ -16,6 +16,6 @@ func GetAiResponse(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"response": ai.AiPrompt(client, []*genai.Content{}, "What is Ai?"),
+		"response": ai.AiChatPrompt(client, []*genai.Content{}, "What is Ai?"),
 	})
 }

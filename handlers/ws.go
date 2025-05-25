@@ -35,7 +35,7 @@ func chat(clientId string, ws *websocket.Conn) {
 			break
 		}
 
-		resp := ai.AiPrompt(AiModel, chatSessions[clientId], string(msg))
+		resp := ai.AiChatPrompt(AiModel, chatSessions[clientId], string(msg))
 		ws.WriteMessage(t, []byte(resp))
 
 		// create new chat history
