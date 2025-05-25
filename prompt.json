@@ -1,0 +1,6 @@
+{
+    "workout-init-plan": {
+        "prompt": "Generate a list of questions for a fitness app that helps users create personalized workout routines and track calorie intake",
+        "expectedOutput": "{\"response\": \"The response to the action\", \"status\": \"success or error\", \"error\": \"Error message if any\", \"data\": [ { \"id\": \"<value>\", \"question\": \"<value>\", \"options\": [ { text: \"<description>\", value: \"<value>\" } } ] }"
+    }
+}

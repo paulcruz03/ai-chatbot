@@ -8,7 +8,7 @@ func CreateLogger(logString string) {
 	fmt.Println(logString)
 }
 
-func GeneratePrompt(prompt string) string {
+func GeneratePrompt(prompt string, outputFormat string) string {
 	// This function is a placeholder for generating a prompt.
 	// In a real application, this would interface with an AI model.
 	context := fmt.Sprintf(`
@@ -16,23 +16,8 @@ func GeneratePrompt(prompt string) string {
 
 		Action: %s
 
-		Output: JSON format with the following keys:
-		{
-			"response": "The response to the action",
-			"status": "success or error",
-			"error": "Error message if any"
-			"data": [
-				{
-					"id": "<value>",
-					"question": "<value>",
-					"options": [
-						{
-							text: "<description>",
-							value: "<value>"
-						}
-				}
-			]
-		}
-	`, prompt)
+		Output: JSON format with these suggested keys:
+		%s
+	`, prompt, outputFormat)
 	return context
 }

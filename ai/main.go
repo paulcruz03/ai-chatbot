@@ -42,9 +42,10 @@ func AiChatPrompt(model *genai.GenerativeModel, chatHistory []*genai.Content, pr
 	return ""
 }
 
-func AiPrompt(model *genai.GenerativeModel, prompt string) string {
+func AiPrompt(model *genai.GenerativeModel, prompt string, outputFormat string) string {
 	ctx := context.Background()
-	finalPrompt := GeneratePrompt(prompt)
+	finalPrompt := GeneratePrompt(prompt, outputFormat)
+	CreateLogger("[AI] Prompt: " + finalPrompt)
 	resp, err := model.GenerateContent(ctx, genai.Text(finalPrompt))
 
 	if err != nil {
