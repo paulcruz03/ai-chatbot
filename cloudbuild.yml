@@ -1,0 +1,17 @@
+# This Cloud Build configuration file builds a Docker image and pushes it to Google Container Registry.
+steps:
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "GEMINI_API_KEY=${_GEMINI_API_KEY}" >> .env
+    
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', '${LOCATION}-docker.pkg.dev/$PROJECT_ID/${_PROJECT_NAME}/${_IMAGE_NAME}:${COMMIT_SHA}', '.']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', '${LOCATION}-docker.pkg.dev/$PROJECT_ID/${_PROJECT_NAME}/${_IMAGE_NAME}:${COMMIT_SHA}']
+
+images:
+  - '${LOCATION}-docker.pkg.dev/$PROJECT_ID/${_PROJECT_NAME}/${_IMAGE_NAME}:${COMMIT_SHA}'
