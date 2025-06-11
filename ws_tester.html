@@ -147,12 +147,12 @@
       });
 
       function start() {
-        fetch("http://localhost:8080/client-id")
+        fetch(`${window.location.origin}/client-id`)
           .then(response => response.json())
           .then(data => {
             console.log(data);
             clientId = data.id;
-            c = new WebSocket(`ws://localhost:8080/ws/${clientId}`);
+            c = new WebSocket(`${window.location.protocol.startsWith('https') ? "wss" : "ws"}://${window.location.host}/ws/${clientId}`);
             initChat()
             document.getElementById("start").classList.add("hide");
             document.getElementById("start-button").disabled = true;
