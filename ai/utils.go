@@ -18,6 +18,8 @@ func GeneratePrompt(prompt string, outputFormat string) string {
 
 		Output: JSON format with these suggested keys:
 		%s
+
+		Note: only respond with the JSON object, do not include any other text or explanation.
 	`, prompt, outputFormat)
 	return context
 }

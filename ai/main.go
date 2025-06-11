@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"go-chatbot/utils"
@@ -53,6 +54,7 @@ func AiPrompt(model *genai.GenerativeModel, prompt string, outputFormat string) 
 	}
 	if len(resp.Candidates) > 0 && len(resp.Candidates[0].Content.Parts) > 0 {
 		if textPart, ok := resp.Candidates[0].Content.Parts[0].(genai.Text); ok {
+			fmt.Print(string(textPart))
 			return string(textPart)
 		}
 	}

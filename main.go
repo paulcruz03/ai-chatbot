@@ -35,7 +35,7 @@ func main() {
 	router.GET("/ai", handlers.GetAiResponse)
 	router.GET("/client-id", handlers.GenerateClientId)
 	router.GET("/ws/:clientId", handlers.WsHandler)
-	router.GET("/ai/game/init", handlers.GetAiQuestions)
+	router.POST("/ai/game/init", handlers.GetAiQuestions)
 	router.GET("/ai/game/suggest", handlers.GetAiQuestions)
 
 	router.Run(":8080")

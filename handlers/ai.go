@@ -12,6 +12,10 @@ import (
 	"github.com/google/generative-ai-go/genai"
 )
 
+type AIPromptRequestData struct {
+	Mode string `json:"mode"`
+}
+
 func GetAiResponse(c *gin.Context) {
 	client := ai.Main()
 	if client == nil {
@@ -29,8 +33,13 @@ func GetAiQuestions(c *gin.Context) {
 		c.Abort()
 	}
 
-	mode := c.Query("mode")
+	var requestBody AIPromptRequestData
+	if err := c.BindJSON(&requestBody); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Prompt and output format are required"})
+		return
+	}
 
+	mode := requestBody.Mode
 	if mode == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Prompt and output format are required"})
 		return
@@ -62,7 +71,7 @@ func GetAiQuestions(c *gin.Context) {
 	err := json.Unmarshal([]byte(rawResponse), &response)
 	if err != nil {
 		fmt.Print(err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Error parsing AI response"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Error parsing AI response", "rawResponse": rawResponse})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"response": response})
