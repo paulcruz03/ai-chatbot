@@ -6,8 +6,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/generative-ai-go/genai"
 	"github.com/gorilla/websocket"
+	"google.golang.org/genai"
 )
 
 var wsupgrader = websocket.Upgrader{
@@ -17,7 +17,6 @@ var wsupgrader = websocket.Upgrader{
 		return true
 	},
 }
-var AiModel = ai.Main()
 var chatSessions map[string][]*genai.Content
 
 func chat(clientId string, ws *websocket.Conn) {
@@ -35,21 +34,15 @@ func chat(clientId string, ws *websocket.Conn) {
 			break
 		}
 
-		resp := ai.AiPrompt(AiModel, chatSessions[clientId], string(msg))
+		client, err := ai.New(clientId)
+		if err != nil {
+			break
+		}
+		resp, history := client.Send(string(msg), chatSessions[clientId])
 		ws.WriteMessage(t, []byte(resp))
 
 		// create new chat history
-		chatSessions[clientId] = append(chatSessions[clientId], &genai.Content{
-			Parts: []genai.Part{
-				genai.Text(string(msg)),
-			},
-			Role: "user",
-		}, &genai.Content{
-			Parts: []genai.Part{
-				genai.Text(resp),
-			},
-			Role: "model",
-		})
+		chatSessions[clientId] = history
 	}
 }
 

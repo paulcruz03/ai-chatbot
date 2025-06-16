@@ -2,42 +2,55 @@ package ai
 
 import (
 	"context"
-	"log"
-
+	"fmt"
 	"go-chatbot/utils"
 
-	"github.com/google/generative-ai-go/genai"
-	"google.golang.org/api/option"
+	"google.golang.org/genai"
 )
 
-func Main() *genai.GenerativeModel {
-	aiKey := utils.GoDotEnvVariable("GEMINI_API_KEY")
-	ctx := context.Background()
-	client, err := genai.NewClient(ctx, option.WithAPIKey(aiKey))
-
-	if err != nil {
-		log.Fatal(err)
-	}
-	model := client.GenerativeModel("gemini-2.0-flash-exp")
-
-	CreateLogger("Init Ai")
-	return model
+type AiClient struct {
+	ID     string
+	Client *genai.Client
+	Model  string
 }
 
-func AiPrompt(model *genai.GenerativeModel, chatHistory []*genai.Content, prompt string) string {
-	ctx := context.Background()
-	cs := model.StartChat()
+func New(id string) (*AiClient, error) {
+	aiKey := utils.GoDotEnvVariable("GEMINI_API_KEY")
 
-	CreateLogger("Prompt: " + prompt)
-	cs.History = chatHistory
-	resp, err := cs.SendMessage(ctx, genai.Text(prompt))
+	ctx := context.Background()
+	client, err := genai.NewClient(ctx, &genai.ClientConfig{
+		APIKey:  aiKey,
+		Backend: genai.BackendGeminiAPI,
+	})
+
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	if len(resp.Candidates) > 0 && len(resp.Candidates[0].Content.Parts) > 0 {
-		if textPart, ok := resp.Candidates[0].Content.Parts[0].(genai.Text); ok {
-			return string(textPart)
-		}
+
+	model := "gemini-2.0-flash-exp" // or any other model you want to use
+
+	return &AiClient{
+		ID:     id,
+		Client: client,
+		Model:  model,
+	}, nil
+}
+
+func (e AiClient) Send(msg string, history []*genai.Content) (string, []*genai.Content) {
+	ctx := context.Background()
+
+	chat, _ := e.Client.Chats.Create(ctx, e.Model, nil, history)
+	res, _ := chat.SendMessage(ctx, genai.Part{Text: msg})
+	fmt.Println(e.ID, chat)
+
+	history = append(history,
+		genai.NewContentFromText(msg, genai.RoleUser),
+		genai.NewContentFromText(res.Candidates[0].Content.Parts[0].Text, genai.RoleModel),
+	)
+
+	if len(res.Candidates) > 0 {
+		return res.Candidates[0].Content.Parts[0].Text, history
 	}
-	return ""
+
+	return "", history
 }

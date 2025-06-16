@@ -6,16 +6,17 @@ import (
 	"go-chatbot/ai"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/generative-ai-go/genai"
+	"google.golang.org/genai"
 )
 
 func GetAiResponse(c *gin.Context) {
-	client := ai.Main()
-	if client == nil {
+	client, err := ai.New("test-client")
+	if err != nil {
 		c.Abort()
 	}
 
+	message, _ := client.Send("Hello, how are you?", []*genai.Content{})
 	c.JSON(http.StatusOK, gin.H{
-		"response": ai.AiPrompt(client, []*genai.Content{}, "What is Ai?"),
+		"response": message,
 	})
 }
