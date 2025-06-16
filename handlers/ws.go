@@ -46,6 +46,15 @@ func chat(clientId string, ws *websocket.Conn) {
 	}
 }
 
+func CheckAllowedClientId(clientId string) bool {
+	for _, id := range allowedClientIds {
+		if id == clientId {
+			return true
+		}
+	}
+	return false
+}
+
 func WsHandler(ctx *gin.Context) {
 	// security check that only allowed clientId can access the websocket
 	if !CheckAllowedClientId(ctx.Param("clientId")) {
