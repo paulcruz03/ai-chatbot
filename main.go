@@ -35,11 +35,11 @@ func main() {
 
 	router.GET("/health", handlers.HealthCheck)
 	// router.GET("/chat-list", )
-	// router.GET("/chat-init")
+	router.POST("/chat-init", handlers.StartChat)
 
-	router.GET("/ai", handlers.GetAiResponse)
-	router.GET("/client-id", handlers.GenerateClientId)
-	router.GET("/ws/:clientId", handlers.WsHandler)
+	// router.GET("/ai", handlers.GetAiResponse)
+	// router.GET("/client-id", handlers.GenerateClientId)
+	// router.GET("/ws/:clientId", handlers.WsHandler)
 
 	router.Run(":8080")
 	// Start HTTPS server

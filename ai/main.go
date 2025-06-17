@@ -54,3 +54,17 @@ func (e AiClient) Send(msg string, history []*genai.Content) (string, []*genai.C
 
 	return "", history
 }
+
+func (e AiClient) GenerateTitle(msg string) string {
+	ctx := context.Background()
+	result, _ := e.Client.Models.GenerateContent(
+		ctx,
+		e.Model,
+		genai.Text(fmt.Sprintf(`
+			Generate a concise, engaging, and relevant title for the following user prompt: %s
+		`, msg)),
+		nil,
+	)
+
+	return result.Text()
+}

@@ -1,16 +1,18 @@
 package handlers
 
 import (
-	"crypto/rand"
+	backend "go-chatbot/firebase"
 	"net/http"
 
-	"go-chatbot/ai"
-
 	"github.com/gin-gonic/gin"
-	"google.golang.org/genai"
 )
 
 var allowedClientIds = []string{""}
+
+type UserPrompt struct {
+	IdToken         string `json:"idToken"`
+	UserPromptValue string `json:"userPrompt"`
+}
 
 func HealthCheck(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
@@ -18,23 +20,33 @@ func HealthCheck(c *gin.Context) {
 	})
 }
 
-func GenerateClientId(c *gin.Context) {
-	id := rand.Text()
-	allowedClientIds = append(allowedClientIds, id)
-
-	c.JSON(http.StatusOK, gin.H{
-		"id": id,
-	})
-}
-
-func GetAiResponse(c *gin.Context) {
-	client, err := ai.New("test-client")
-	if err != nil {
-		c.Abort()
+func StartChat(c *gin.Context) {
+	var userPrompt UserPrompt
+	if err := c.BindJSON(&userPrompt); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 
-	message, _ := client.Send("Hello, how are you?", []*genai.Content{})
+	firebase, err := backend.New()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	token, isVerified := firebase.Verify(userPrompt.IdToken)
+	if !isVerified {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+		return
+	}
+
+	chatId, chatContent, err := firebase.CreateChat(token.UID, userPrompt.UserPromptValue)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"response": message,
+		"chatId": chatId,
+		"title":  chatContent.Title,
 	})
 }
