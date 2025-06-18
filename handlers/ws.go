@@ -3,11 +3,12 @@ package handlers
 import (
 	"fmt"
 	"go-chatbot/ai"
+	backend "go-chatbot/firebase"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
-	"google.golang.org/genai"
 )
 
 var wsupgrader = websocket.Upgrader{
@@ -17,55 +18,56 @@ var wsupgrader = websocket.Upgrader{
 		return true
 	},
 }
-var chatSessions map[string][]*genai.Content
 
-func chat(clientId string, ws *websocket.Conn) {
+func chat(
+	ws *websocket.Conn,
+	backend *backend.Backend,
+	userUid string,
+	chatId string,
+	chat *backend.Chat,
+
+) {
 	defer ws.Close()
 
-	// to create a new chat session
-	// like { clientId: chatHistory[] }
-	if chatSessions == nil {
-		chatSessions = make(map[string][]*genai.Content)
-	}
-
+	chatHistory := chat.History
 	for {
 		t, msg, err := ws.ReadMessage()
 		if err != nil {
 			break
 		}
 
-		client, err := ai.New(clientId)
+		client, err := ai.New(chatId)
 		if err != nil {
 			break
 		}
-		resp, history := client.Send(string(msg), chatSessions[clientId])
+		resp, history := client.Send(string(msg), chatHistory)
 		ws.WriteMessage(t, []byte(resp))
 
 		// create new chat history
-		chatSessions[clientId] = history
+		chatHistory = history
 	}
+
+	log.Printf("Closing uid: %s , chatId: %s\n", userUid, chatId)
+	backend.UpdateChat(userUid, chatId, chatHistory)
 }
 
-func CheckAllowedClientId(clientId string) bool {
-	for _, id := range allowedClientIds {
-		if id == clientId {
-			return true
-		}
-	}
-	return false
-}
-
-func WsHandler(ctx *gin.Context) {
-	// security check that only allowed clientId can access the websocket
-	if !CheckAllowedClientId(ctx.Param("clientId")) {
-		return
-	}
-
-	ws, err := wsupgrader.Upgrade(ctx.Writer, ctx.Request, nil)
+func WsHandler(c *gin.Context) {
+	firebase, err := backend.New()
 	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
 
-	chat(ctx.Param("clientId"), ws)
+	chatHistory, doesChatExist := firebase.VerifyAndRetrieveChat(c.Param("clientId"), c.Param("chatId"))
+	if !doesChatExist {
+		return
+	}
+
+	ws, err := wsupgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+
+	chat(ws, firebase, c.Param("clientId"), c.Param("chatId"), chatHistory)
 }

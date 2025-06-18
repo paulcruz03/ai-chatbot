@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"go-chatbot/utils"
+	"log"
 
 	"google.golang.org/genai"
 )
@@ -57,14 +58,20 @@ func (e AiClient) Send(msg string, history []*genai.Content) (string, []*genai.C
 
 func (e AiClient) GenerateTitle(msg string) string {
 	ctx := context.Background()
-	result, _ := e.Client.Models.GenerateContent(
+	result, err := e.Client.Models.GenerateContent(
 		ctx,
 		e.Model,
 		genai.Text(fmt.Sprintf(`
 			Generate a concise, engaging, and relevant title for the following user prompt: %s
+
+			Only return one title
 		`, msg)),
 		nil,
 	)
+	if err != nil {
+		log.Fatalf("error generating title: %v\n", err)
+		return msg
+	}
 
 	return result.Text()
 }

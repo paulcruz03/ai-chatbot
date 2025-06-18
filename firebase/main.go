@@ -2,6 +2,7 @@ package backend
 
 import (
 	"context"
+	"fmt"
 	"go-chatbot/utils"
 	"log"
 	"time"
@@ -21,20 +22,26 @@ type Backend struct {
 
 type Chat struct {
 	CreatedAt int64            `json:"createdAt,omitempty"`
+	UpdatedAt int64            `json:"updatedAt,omitempty"`
 	History   []*genai.Content `json:"history,omitempty"`
 	Title     string           `json:"title,omitempty"`
 }
 
 func New() (*Backend, error) {
 	firebaseServiceAccountJSON := utils.GoDotEnvVariable("FIREBASE_SERVICE_ACCOUNT_JSON")
-
+	realtimeDbUrl := utils.GoDotEnvVariable("FIREBASE_REALTIME_DB")
 	if firebaseServiceAccountJSON == "" {
 		log.Fatalf("FIREBASE_SERVICE_ACCOUNT_JSON environment variable not set")
 	}
-	// fmt.Print(firebaseServiceAccountJSON)
+	if realtimeDbUrl == "" {
+		log.Fatalf("FIREBASE_REALTIME_DB environment variable not set")
+	}
+	conf := &firebase.Config{
+		DatabaseURL: realtimeDbUrl,
+	}
 
 	opt := option.WithCredentialsJSON([]byte(firebaseServiceAccountJSON))
-	app, err := firebase.NewApp(context.Background(), nil, opt)
+	app, err := firebase.NewApp(context.Background(), conf, opt)
 	if err != nil {
 		log.Fatalf("error initializing app: %v\n", err)
 		return nil, err
@@ -63,18 +70,18 @@ func (b Backend) Verify(idToken string) (*auth.Token, bool) {
 	token, err := b.authClient.VerifyIDToken(context.Background(), idToken)
 	if err != nil {
 		log.Fatalf("error verifying ID token: %v\n", err)
-		return token, true
+		return nil, false
 	}
 	log.Printf("Verified ID token for UID: %s\n", token.UID)
-	return nil, false
+	return token, true
 }
 
 func (b Backend) CreateChat(userUID string, title string) (*db.Ref, *Chat, error) {
+	log.Printf("Creating new chat for %s", userUID)
 	ctx := context.Background()
-	ref := b.dbClient.NewRef(userUID)
-	postsRef := ref.Child("chats")
+	ref := b.dbClient.NewRef(fmt.Sprintf(`%s/chats`, userUID))
 
-	newPostRef, err := postsRef.Push(ctx, nil)
+	newPostRef, err := ref.Push(ctx, nil)
 	if err != nil {
 		log.Fatalln("Error pushing child node:", err)
 		return nil, nil, err
@@ -89,4 +96,29 @@ func (b Backend) CreateChat(userUID string, title string) (*db.Ref, *Chat, error
 	}
 
 	return newPostRef, &chat, nil
+}
+
+func (b Backend) VerifyAndRetrieveChat(userUID string, key string) (*Chat, bool) {
+	log.Printf("Getting chat history for %s", userUID)
+	ctx := context.Background()
+	ref := b.dbClient.NewRef(fmt.Sprintf(`%s/chats/%s`, userUID, key))
+
+	var chatHistory *Chat
+	if err := ref.Get(ctx, &chatHistory); err != nil {
+		log.Printf("Error getting post %s: %v\n", key, err)
+		return nil, false
+	}
+
+	if chatHistory == nil {
+		return nil, false
+	}
+
+	if chatHistory.History == nil {
+		chatHistory.History = []*genai.Content{}
+	}
+	return chatHistory, true
+}
+
+func (b Backend) UpdateChat(userUID string, key string, newHistory []*genai.Content) {
+
 }

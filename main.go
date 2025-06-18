@@ -34,17 +34,9 @@ func main() {
 	})
 
 	router.GET("/health", handlers.HealthCheck)
-	// router.GET("/chat-list", )
 	router.POST("/chat-init", handlers.StartChat)
 
-	// router.GET("/ai", handlers.GetAiResponse)
-	// router.GET("/client-id", handlers.GenerateClientId)
-	// router.GET("/ws/:clientId", handlers.WsHandler)
+	router.GET("/ws/:clientId/:chatId", handlers.WsHandler)
 
 	router.Run(":8080")
-	// Start HTTPS server
-	// err := router.RunTLS(":80", "./cert.pem", "./key.pem")
-	// if err != nil {
-	// 	panic("Failed to start HTTPS server: " + err.Error())
-	// }
 }

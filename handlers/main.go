@@ -1,13 +1,12 @@
 package handlers
 
 import (
+	"go-chatbot/ai"
 	backend "go-chatbot/firebase"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
-
-var allowedClientIds = []string{""}
 
 type UserPrompt struct {
 	IdToken         string `json:"idToken"`
@@ -39,7 +38,12 @@ func StartChat(c *gin.Context) {
 		return
 	}
 
-	chatId, chatContent, err := firebase.CreateChat(token.UID, userPrompt.UserPromptValue)
+	ai, err := ai.New("")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	chatId, chatContent, err := firebase.CreateChat(token.UID, ai.GenerateTitle(userPrompt.UserPromptValue))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
