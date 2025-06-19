@@ -35,13 +35,16 @@ func chat(
 		if err != nil {
 			break
 		}
+		loadingMsg := `{"type":"loading","message":"AI is typing..."}`
+		ws.WriteMessage(t, []byte(loadingMsg))
 
 		client, err := ai.New(chatId)
 		if err != nil {
 			break
 		}
 		resp, history := client.Send(string(msg), chatHistory)
-		ws.WriteMessage(t, []byte(resp))
+		responseMsg := fmt.Sprintf(`{"type":"response","message":%q}`, resp)
+		ws.WriteMessage(t, []byte(responseMsg))
 
 		// create new chat history
 		chatHistory = history

@@ -50,7 +50,7 @@ func StartChat(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"chatId": chatId,
+		"chatId": chatId.Key,
 		"title":  chatContent.Title,
 	})
 }

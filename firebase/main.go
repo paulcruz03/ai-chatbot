@@ -27,6 +27,11 @@ type Chat struct {
 	Title     string           `json:"title,omitempty"`
 }
 
+type ChatHistory struct {
+	Role string `json:"role,omitempty"`
+	Text string `json:"text,omitempty"`
+}
+
 func New() (*Backend, error) {
 	firebaseServiceAccountJSON := utils.GoDotEnvVariable("FIREBASE_SERVICE_ACCOUNT_JSON")
 	realtimeDbUrl := utils.GoDotEnvVariable("FIREBASE_REALTIME_DB")
@@ -120,5 +125,21 @@ func (b Backend) VerifyAndRetrieveChat(userUID string, key string) (*Chat, bool)
 }
 
 func (b Backend) UpdateChat(userUID string, key string, newHistory []*genai.Content) {
+	history := []*ChatHistory{}
 
+	for _, chat := range newHistory {
+		history = append(history, &ChatHistory{
+			Role: chat.Role,
+			Text: chat.Parts[0].Text,
+		})
+	}
+
+	ctx := context.Background()
+	ref := b.dbClient.NewRef(fmt.Sprintf(`%s/chats/%s`, userUID, key))
+	historyRef := ref.Child("history")
+	err := historyRef.Set(ctx, history)
+
+	if err != nil {
+		log.Fatalln("Error setting value:", err)
+	}
 }
