@@ -20,16 +20,16 @@ type Backend struct {
 	dbClient   *db.Client
 }
 
-type Chat struct {
-	CreatedAt int64            `json:"createdAt,omitempty"`
-	UpdatedAt int64            `json:"updatedAt,omitempty"`
-	History   []*genai.Content `json:"history,omitempty"`
-	Title     string           `json:"title,omitempty"`
-}
-
 type ChatHistory struct {
 	Role string `json:"role,omitempty"`
 	Text string `json:"text,omitempty"`
+}
+
+type Chat struct {
+	CreatedAt int64          `json:"createdAt,omitempty"`
+	UpdatedAt int64          `json:"updatedAt,omitempty"`
+	History   []*ChatHistory `json:"history,omitempty"`
+	Title     string         `json:"title,omitempty"`
 }
 
 func New() (*Backend, error) {
@@ -103,7 +103,7 @@ func (b Backend) CreateChat(userUID string, title string) (*db.Ref, *Chat, error
 	return newPostRef, &chat, nil
 }
 
-func (b Backend) VerifyAndRetrieveChat(userUID string, key string) (*Chat, bool) {
+func (b Backend) VerifyAndRetrieveChat(userUID string, key string) (*Chat, []*genai.Content, bool) {
 	log.Printf("Getting chat history for %s", userUID)
 	ctx := context.Background()
 	ref := b.dbClient.NewRef(fmt.Sprintf(`%s/chats/%s`, userUID, key))
@@ -111,17 +111,18 @@ func (b Backend) VerifyAndRetrieveChat(userUID string, key string) (*Chat, bool)
 	var chatHistory *Chat
 	if err := ref.Get(ctx, &chatHistory); err != nil {
 		log.Printf("Error getting post %s: %v\n", key, err)
-		return nil, false
+		return nil, nil, false
 	}
 
 	if chatHistory == nil {
-		return nil, false
+		return nil, nil, false
 	}
 
-	if chatHistory.History == nil {
-		chatHistory.History = []*genai.Content{}
+	convertedHistory := []*genai.Content{}
+	for _, chat := range chatHistory.History {
+		convertedHistory = append(convertedHistory, genai.NewContentFromText(string(chat.Text), genai.Role(chat.Role)))
 	}
-	return chatHistory, true
+	return chatHistory, convertedHistory, true
 }
 
 func (b Backend) UpdateChat(userUID string, key string, newHistory []*genai.Content) {

@@ -38,17 +38,22 @@ func New(id string) (*AiClient, error) {
 }
 
 func (e AiClient) Send(msg string, history []*genai.Content) (string, []*genai.Content) {
+	log.Printf("User Query: %s", msg)
 	ctx := context.Background()
 
 	chat, _ := e.Client.Chats.Create(ctx, e.Model, nil, history)
-	res, _ := chat.SendMessage(ctx, genai.Part{Text: msg})
-	fmt.Println(e.ID, chat)
+	res, err := chat.SendMessage(ctx, genai.Part{Text: msg})
+	if err != nil {
+		log.Fatalf("Error encountered sending: %v\n", err)
+		return "", history
+	}
 
 	history = append(history,
 		genai.NewContentFromText(msg, genai.RoleUser),
 		genai.NewContentFromText(res.Candidates[0].Content.Parts[0].Text, genai.RoleModel),
 	)
 
+	fmt.Println(e.ID, chat)
 	if len(res.Candidates) > 0 {
 		return res.Candidates[0].Content.Parts[0].Text, history
 	}

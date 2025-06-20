@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"go-chatbot/ai"
 	backend "go-chatbot/firebase"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"google.golang.org/genai"
 )
 
 var wsupgrader = websocket.Upgrader{
@@ -25,11 +27,10 @@ func chat(
 	userUid string,
 	chatId string,
 	chat *backend.Chat,
-
+	chatHistory []*genai.Content,
 ) {
 	defer ws.Close()
 
-	chatHistory := chat.History
 	for {
 		t, msg, err := ws.ReadMessage()
 		if err != nil {
@@ -40,11 +41,16 @@ func chat(
 
 		client, err := ai.New(chatId)
 		if err != nil {
+			log.Println("Error:", err)
 			break
 		}
 		resp, history := client.Send(string(msg), chatHistory)
-		responseMsg := fmt.Sprintf(`{"type":"response","message":%q}`, resp)
-		ws.WriteMessage(t, []byte(responseMsg))
+		responseMsg, err := json.Marshal(map[string]string{"type": "response", "message": resp})
+		if err != nil {
+			log.Println("JSON marshal error:", err)
+			continue // or break
+		}
+		ws.WriteMessage(t, responseMsg)
 
 		// create new chat history
 		chatHistory = history
@@ -61,7 +67,10 @@ func WsHandler(c *gin.Context) {
 		return
 	}
 
-	chatHistory, doesChatExist := firebase.VerifyAndRetrieveChat(c.Param("clientId"), c.Param("chatId"))
+	chatHistory, convertedHistory, doesChatExist := firebase.VerifyAndRetrieveChat(
+		c.Param("clientId"),
+		c.Param("chatId"),
+	)
 	if !doesChatExist {
 		return
 	}
@@ -72,5 +81,5 @@ func WsHandler(c *gin.Context) {
 		return
 	}
 
-	chat(ws, firebase, c.Param("clientId"), c.Param("chatId"), chatHistory)
+	chat(ws, firebase, c.Param("clientId"), c.Param("chatId"), chatHistory, convertedHistory)
 }
