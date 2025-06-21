@@ -7,6 +7,8 @@ import (
 	"log"
 	"time"
 
+	"go-chatbot/ai"
+
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/auth"
 	"firebase.google.com/go/v4/db"
@@ -81,9 +83,15 @@ func (b Backend) Verify(idToken string) (*auth.Token, bool) {
 	return token, true
 }
 
-func (b Backend) CreateChat(userUID string, title string) (*db.Ref, *Chat, error) {
+func (b Backend) CreateChat(userUID string, userPrompt string) (*db.Ref, *Chat, error) {
 	log.Printf("Creating new chat for %s", userUID)
 	ctx := context.Background()
+	ai, err := ai.New("")
+	if err != nil {
+		log.Fatalln("Error Ai Init:", err)
+		return nil, nil, err
+	}
+
 	ref := b.dbClient.NewRef(fmt.Sprintf(`%s/chats`, userUID))
 
 	newPostRef, err := ref.Push(ctx, nil)
@@ -92,10 +100,15 @@ func (b Backend) CreateChat(userUID string, title string) (*db.Ref, *Chat, error
 		return nil, nil, err
 	}
 
+	history := []*ChatHistory{}
+	history = append(history, &ChatHistory{Role: genai.RoleUser, Text: userPrompt})
+	history = append(history, &ChatHistory{Role: genai.RoleModel, Text: ai.GenerateSingleResponse(userPrompt)})
 	chat := Chat{
 		CreatedAt: time.Now().UTC().UnixMilli(),
-		Title:     title,
+		Title:     ai.GenerateTitle(userPrompt),
+		History:   history,
 	}
+
 	if err := newPostRef.Set(ctx, chat); err != nil {
 		log.Fatalln("Error setting value:", err)
 	}

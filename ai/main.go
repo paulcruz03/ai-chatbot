@@ -80,3 +80,19 @@ func (e AiClient) GenerateTitle(msg string) string {
 
 	return result.Text()
 }
+
+func (e AiClient) GenerateSingleResponse(msg string) string {
+	ctx := context.Background()
+	result, err := e.Client.Models.GenerateContent(
+		ctx,
+		e.Model,
+		genai.Text(msg),
+		nil,
+	)
+	if err != nil {
+		log.Fatalf("error generating response: %v\n", err)
+		return msg
+	}
+
+	return result.Text()
+}
