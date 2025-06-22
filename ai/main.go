@@ -2,42 +2,97 @@ package ai
 
 import (
 	"context"
+	"fmt"
+	"go-chatbot/utils"
 	"log"
 
-	"go-chatbot/utils"
-
-	"github.com/google/generative-ai-go/genai"
-	"google.golang.org/api/option"
+	"google.golang.org/genai"
 )
 
-func Main() *genai.GenerativeModel {
-	aiKey := utils.GoDotEnvVariable("GEMINI_API_KEY")
-	ctx := context.Background()
-	client, err := genai.NewClient(ctx, option.WithAPIKey(aiKey))
-
-	if err != nil {
-		log.Fatal(err)
-	}
-	model := client.GenerativeModel("gemini-2.0-flash-exp")
-
-	CreateLogger("Init Ai")
-	return model
+type AiClient struct {
+	ID     string
+	Client *genai.Client
+	Model  string
 }
 
-func AiPrompt(model *genai.GenerativeModel, chatHistory []*genai.Content, prompt string) string {
-	ctx := context.Background()
-	cs := model.StartChat()
+func New(id string) (*AiClient, error) {
+	aiKey := utils.GoDotEnvVariable("GEMINI_API_KEY")
 
-	CreateLogger("Prompt: " + prompt)
-	cs.History = chatHistory
-	resp, err := cs.SendMessage(ctx, genai.Text(prompt))
+	ctx := context.Background()
+	client, err := genai.NewClient(ctx, &genai.ClientConfig{
+		APIKey:  aiKey,
+		Backend: genai.BackendGeminiAPI,
+	})
+
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	if len(resp.Candidates) > 0 && len(resp.Candidates[0].Content.Parts) > 0 {
-		if textPart, ok := resp.Candidates[0].Content.Parts[0].(genai.Text); ok {
-			return string(textPart)
-		}
+
+	model := "gemini-2.0-flash-exp" // or any other model you want to use
+
+	return &AiClient{
+		ID:     id,
+		Client: client,
+		Model:  model,
+	}, nil
+}
+
+func (e AiClient) Send(msg string, history []*genai.Content) (string, []*genai.Content) {
+	log.Printf("User Query: %s", msg)
+	ctx := context.Background()
+
+	chat, _ := e.Client.Chats.Create(ctx, e.Model, nil, history)
+	res, err := chat.SendMessage(ctx, genai.Part{Text: msg})
+	if err != nil {
+		log.Fatalf("Error encountered sending: %v\n", err)
+		return "", history
 	}
-	return ""
+
+	history = append(history,
+		genai.NewContentFromText(msg, genai.RoleUser),
+		genai.NewContentFromText(res.Candidates[0].Content.Parts[0].Text, genai.RoleModel),
+	)
+
+	fmt.Println(e.ID, chat)
+	if len(res.Candidates) > 0 {
+		return res.Candidates[0].Content.Parts[0].Text, history
+	}
+
+	return "", history
+}
+
+func (e AiClient) GenerateTitle(msg string) string {
+	ctx := context.Background()
+	result, err := e.Client.Models.GenerateContent(
+		ctx,
+		e.Model,
+		genai.Text(fmt.Sprintf(`
+			Generate a concise, engaging, and relevant title for the following user prompt: %s
+
+			Only return one title
+		`, msg)),
+		nil,
+	)
+	if err != nil {
+		log.Fatalf("error generating title: %v\n", err)
+		return msg
+	}
+
+	return result.Text()
+}
+
+func (e AiClient) GenerateSingleResponse(msg string) string {
+	ctx := context.Background()
+	result, err := e.Client.Models.GenerateContent(
+		ctx,
+		e.Model,
+		genai.Text(msg),
+		nil,
+	)
+	if err != nil {
+		log.Fatalf("error generating response: %v\n", err)
+		return msg
+	}
+
+	return result.Text()
 }

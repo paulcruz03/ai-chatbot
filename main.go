@@ -2,7 +2,6 @@ package main
 
 import (
 	"go-chatbot/handlers"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
@@ -27,19 +26,11 @@ func CORSMiddleware() gin.HandlerFunc {
 func main() {
 	router := gin.Default()
 	router.Use(CORSMiddleware())
-	router.LoadHTMLFiles("ws_tester.html")
-	router.GET("/", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "ws_tester.html", gin.H{})
-	})
+
 	router.GET("/health", handlers.HealthCheck)
-	router.GET("/ai", handlers.GetAiResponse)
-	router.GET("/client-id", handlers.GenerateClientId)
-	router.GET("/ws/:clientId", handlers.WsHandler)
+	router.POST("/chat-init", handlers.StartChat)
+
+	router.GET("/ws/:clientId/:chatId", handlers.WsHandler)
 
 	router.Run(":8080")
-	// Start HTTPS server
-	// err := router.RunTLS(":80", "./cert.pem", "./key.pem")
-	// if err != nil {
-	// 	panic("Failed to start HTTPS server: " + err.Error())
-	// }
 }

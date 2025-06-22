@@ -17,6 +17,8 @@ go mod download
 4. Setup `.env` file for the Google's Gemini Key
 ```
 GEMINI_API_KEY=${key}
+FIREBASE_SERVICE_ACCOUNT_JSON
+FIREBASE_REALTIME_DB
 ```
 5. Run the app and open `ws_tester.html` on the project folder
 ```
