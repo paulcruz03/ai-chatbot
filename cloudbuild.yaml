@@ -6,6 +6,8 @@ steps:
       - '-c'
       - |
         echo "GEMINI_API_KEY=${_GEMINI_API_KEY}" >> .env
+        echo "FIREBASE_SERVICE_ACCOUNT_JSON=${_FIREBASE_SERVICE_ACCOUNT_JSON}" >> .env
+        echo "FIREBASE_REALTIME_DB=${_FIREBASE_REALTIME_DB}" >> .env
     
   - name: 'gcr.io/cloud-builders/docker'
     args: ['build', '-t', '${LOCATION}-docker.pkg.dev/$PROJECT_ID/${_PROJECT_NAME}/${_IMAGE_NAME}:${COMMIT_SHA}', '.']
