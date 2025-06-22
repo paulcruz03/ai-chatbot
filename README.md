@@ -36,5 +36,7 @@ docker run -p 8080:8080 ${image name}
 ```
 then visit http://localhost:8080/
 
+### [Frontend Repository](https://github.com/paulcruz03/chat-app/)
 ### To do
-- Add External Integration (Separate Project)
+- Image
+- Voice
